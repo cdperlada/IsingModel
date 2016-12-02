@@ -1,13 +1,16 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 class Ising(object):
-    J = 1.0 #interaction constant
+    J = 1. # interaction constant
     h = 0
-    L = 101 # lattice linear dimension
-    k_B = 1.0
+    L = 100 
+    k_B = 1.
     T = 2.269
+    iterate = 10000 # number of iterations
+    ic = 0 # to keep track of the number of iterations
     lattice = np.random.choice([1,-1],size=[L,L])
     
     def magnetization(self,lattice):
@@ -40,21 +43,67 @@ class Ising(object):
         h_i = self.J*S_j + self.h
         return -2*self.lattice[y,x]*h_i
 
-    def iteration(self):
-        # number of iterations
-        iterate = 10000 
-        for _ in xrange(iterate):    
-            # index of the randomly chosen site
-            y,x = np.random.randint(self.L),np.random.randint(self.L) 
-            change_E = self.deltaEnergy(y,x)
-            self.lattice = self.metropolis(change_E,y,x,self.lattice,self.T)
+    def on_key(self,event):
+        '''To make the plot interactive.'''
+        
+        key = event.key
+        if key == 'h':
+            self.h += 1
+            self.ic = 0
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+            self.title.set_text(title)
+        elif key == 'g':
+            self.h -= 1
+            self.ic = 0
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+            self.title.set_text(title)
+        elif key == 't':
+            self.T += 1
+            self.ic = 0
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+            self.title.set_text(title)
+        elif key == 'r':
+            self.T /= 2
+            self.ic = 0
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+            self.title.set_text(title)
+        elif key == 'i':
+            self.iterate+=1
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+        elif key == 'u':
+            self.iterate-=1
+            title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
             
-        plt.gray()
-        plt.matshow(self.lattice)
-#        plt.axis('off')
-#        pamagat = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f'%(self.M(self.lattice),self.L,self.T,self.h)
-        plt.title('Ising Model')
+    def continue_loop(self):
+        '''Create a generator.'''
+        
+        while self.ic < self.iterate:
+            self.ic += 1
+            yield self.ic 
+
+    def update(self,continue_loop):
+        '''Perform the algorithm for simulating Ising ferromagnet.'''
+        
+        y,x = np.random.randint(self.L),np.random.randint(self.L) # index of the randomly chosen site
+        change_E = self.deltaEnergy(y,x)
+        self.lattice = self.metropolis(change_E,y,x,self.lattice,self.T)
+        self.im.set_array(self.lattice)
+        title = 'black:-1, white:+1 \nM=%.3f \nL=%i \nT=%.3f $J/k_B$ \nh=%.3f \nnumber of iterations = %i of %i'%(self.magnetization(self.lattice),self.L,self.T,self.h,self.ic,self.iterate)
+        self.title.set_text(title)
+
+    def animate(self):
+        '''Animate the Ising model.'''
+        
+        fig = plt.figure()        
+        self.im = plt.imshow(self.lattice,cmap='gray',interpolation="nearest",animated=1)
+        plt.axis('off')        
+        self.title = plt.title('')
+        fig.canvas.mpl_connect('key_press_event', self.on_key)
+        anim = FuncAnimation(fig,self.update,self.continue_loop,interval=10,repeat=0)
+        plt.tight_layout()     
+        plt.show(block=1) # use Python console or VIDLE
+        #User may increase h,T, and the number of iterations as defined by the on_key function
 
 if __name__ == "__main__":
     sim = Ising()  
-    sim.iteration()        
+    sim.animate()        
